@@ -1,13 +1,13 @@
 #![allow(clippy::legacy_numeric_constants)]
+use conjure_core::ast::Declaration;
 use conjure_core::error::Error;
 use std::fs;
+use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use tree_sitter::{Node, Parser, Tree};
 use tree_sitter_essence::LANGUAGE;
 
-use conjure_core::ast::{
-    Atom, DecisionVariable, Domain, Expression, Literal, Name, Range, SymbolTable,
-};
+use conjure_core::ast::{Atom, Domain, Expression, Literal, Name, Range, SymbolTable};
 
 use crate::utils::conjure::EssenceParseError;
 use conjure_core::context::Context;
@@ -23,7 +23,7 @@ pub fn parse_essence_file_native(
 ) -> Result<Model, EssenceParseError> {
     let (tree, source_code) = get_tree(path, filename, extension);
 
-    let mut model = Model::new_empty(context);
+    let mut model = Model::new(context);
     let root_node = tree.root_node();
     for statement in named_children(&root_node) {
         match statement.kind() {
@@ -31,7 +31,10 @@ pub fn parse_essence_file_native(
             "find_statement_list" => {
                 let var_hashmap = parse_find_statement(statement, &source_code);
                 for (name, decision_variable) in var_hashmap {
-                    model.symbols_mut().add_var(name, decision_variable);
+                    model
+                        .as_submodel_mut()
+                        .symbols_mut()
+                        .insert(Rc::new(Declaration::new_var(name, decision_variable)));
                 }
             }
             "constraint_list" => {
@@ -41,12 +44,12 @@ pub fn parse_essence_file_native(
                         constraint_vec.push(parse_constraint(constraint, &source_code));
                     }
                 }
-                model.add_constraints(constraint_vec);
+                model.as_submodel_mut().add_constraints(constraint_vec);
             }
             "e_prime_label" => {}
             "letting_statement_list" => {
                 let letting_vars = parse_letting_statement(statement, &source_code);
-                model.symbols_mut().extend(letting_vars);
+                model.as_submodel_mut().symbols_mut().extend(letting_vars);
             }
             _ => {
                 let kind = statement.kind();
@@ -72,10 +75,7 @@ fn get_tree(path: &str, filename: &str, extension: &str) -> (Tree, String) {
     )
 }
 
-fn parse_find_statement(
-    find_statement_list: Node,
-    source_code: &str,
-) -> BTreeMap<Name, DecisionVariable> {
+fn parse_find_statement(find_statement_list: Node, source_code: &str) -> BTreeMap<Name, Domain> {
     let mut vars = BTreeMap::new();
 
     for find_statement in named_children(&find_statement_list) {
@@ -93,8 +93,7 @@ fn parse_find_statement(
         let domain = parse_domain(domain, source_code);
 
         for name in temp_symbols {
-            let decision_variable = DecisionVariable::new(domain.clone());
-            vars.insert(Name::UserName(String::from(name)), decision_variable);
+            vars.insert(Name::UserName(String::from(name)), domain.clone());
         }
     }
     vars
@@ -200,18 +199,18 @@ fn parse_letting_statement(letting_statement_list: Node, source_code: &str) -> S
         match expr_or_domain.kind() {
             "expression" => {
                 for name in temp_symbols {
-                    symbol_table.add_value_letting(
+                    symbol_table.insert(Rc::new(Declaration::new_value_letting(
                         Name::UserName(String::from(name)),
                         parse_constraint(expr_or_domain, source_code),
-                    );
+                    )));
                 }
             }
             "domain" => {
                 for name in temp_symbols {
-                    symbol_table.add_domain_letting(
+                    symbol_table.insert(Rc::new(Declaration::new_domain_letting(
                         Name::UserName(String::from(name)),
                         parse_domain(expr_or_domain, source_code),
-                    );
+                    )));
                 }
             }
             _ => panic!("Unrecognized node in letting statement"),
