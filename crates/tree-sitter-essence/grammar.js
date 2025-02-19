@@ -1,10 +1,10 @@
-module.exports = grammar ({
+module.exports = grammar({
   name: 'essence',
 
   extras: $ => [
     $.single_line_comment,
     /\s/,
-    $.e_prime_label
+    $.language_label
   ],
 
   rules: {
@@ -17,48 +17,20 @@ module.exports = grammar ({
     )),
 
     single_line_comment: $ => token(seq('$', /.*/)),
+    language_label: $ => token(seq("language", /.*/)),
 
-    e_prime_label: $ => token("language ESSENCE' 1.0"),
-
-    //general
-    constant: $ => choice(
-      $.integer,
-      $.TRUE,
-      $.FALSE
-    ),
-
+    // Basic components
+    constant: $ => choice($.integer, $.TRUE, $.FALSE),
     integer: $ => /[0-9]+/,
-
     TRUE: $ => "true",
-
     FALSE: $ => "false",
-
     variable: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
-    //find statements
+    // Find statements
     find_statement_list: $ => seq("find", repeat($.find_statement)),
-
-    find_statement: $ => seq(
-      $.variable_list,
-      ":",
-      $.domain,
-      optional(",")
-    ),
-
-    variable_list: $ => seq(
-      $.variable,
-      optional(repeat(seq(
-        ",",
-        $.variable
-      )))
-    ),
-
-    domain: $ => choice(
-      $.bool_domain,
-      $.int_domain,
-      $.variable
-    ),
-
+    find_statement: $ => seq($.variable_list, ":", $.domain, optional(",")),
+    variable_list: $ => seq($.variable, optional(repeat(seq(",", $.variable)))),
+    domain: $ => choice($.bool_domain, $.int_domain, $.variable),
     bool_domain: $ => "bool",
 
     int_domain: $ => prec.left(seq(
@@ -87,27 +59,18 @@ module.exports = grammar ({
 
     int_range: $ => seq(optional($.expression), "..", optional($.expression)),
 
-    //letting statements
+    // Letting statements
     letting_statement_list: $ => seq("letting", repeat($.letting_statement)),
+    letting_statement: $ => seq($.variable_list, "be", choice($.expression, seq("domain", $.domain))),
 
-    letting_statement: $ => seq(
-      $.variable_list,
-      "be",
-      choice($.expression, seq("domain", $.domain))
-    ),
+    // Constraints
+    constraint_list: $ => seq("such that", $.expression, optional(repeat(seq(",", $.expression)))),
 
-    //constraints
-    constraint_list: $ => seq("such that", repeat(seq($.expression, optional(",")))),
-
-    expression: $ => choice(
-      seq("(", $.expression, ")"),
+    // Expression hierarchy
+    expression: $ => choice($.boolean_expr, $.comparison_expr, $.arithmetic_expr),
+    
+    boolean_expr: $ => choice(
       $.not_expr,
-      $.abs_value,
-      $.exponent,
-      $.negative_expr,
-      $.product_expr,
-      $.sum_expr,
-      $.comparison,
       $.and_expr,
       $.or_expr,
       $.implication,
@@ -146,10 +109,7 @@ module.exports = grammar ({
     quantifier_expr: $ => prec(-10, seq(
       choice("and", "or", "min", "max", "sum", "allDiff"),
       "([",
-      repeat(seq(
-        $.expression,
-        optional(",")
-      )),
+      repeat(seq($.expression, optional(","))),
       "])"
     )),
 
@@ -164,5 +124,30 @@ module.exports = grammar ({
       "dominanceRelation",
       $.expression
     )
+
+    comparison_expr: $ => prec(0, seq(
+      $.arithmetic_expr, 
+      choice("=", "!=", "<=", ">=", "<", ">"), 
+      $.arithmetic_expr
+    )),
+
+    arithmetic_expr: $ => choice(
+      $.primary_expr,
+      $.negative_expr,
+      $.abs_value,
+      $.exponent,
+      $.product_expr,
+      $.sum_expr
+    ),
+    primary_expr: $ => choice(
+      seq("(", $.expression, ")"),
+      $.constant,
+      $.variable
+    ),
+    negative_expr: $ => prec(15, prec.left(seq("-", $.arithmetic_expr))),
+    abs_value: $ => prec(20, seq("|", $.arithmetic_expr, "|")),
+    exponent: $ => prec(18, prec.right(seq($.arithmetic_expr, "**", $.arithmetic_expr))),
+    product_expr: $ => prec(10, prec.left(seq($.arithmetic_expr, choice("*", "/", "%"), $.arithmetic_expr))),
+    sum_expr: $ => prec(1, prec.left(seq($.arithmetic_expr, choice("+", "-"), $.arithmetic_expr))),
   }
-})
+});
