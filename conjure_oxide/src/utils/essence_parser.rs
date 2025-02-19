@@ -46,7 +46,7 @@ pub fn parse_essence_file_native(
                 }
                 model.as_submodel_mut().add_constraints(constraint_vec);
             }
-            "e_prime_label" => {}
+            "language_label" => {}
             "letting_statement_list" => {
                 let letting_vars = parse_letting_statement(statement, &source_code);
                 model.as_submodel_mut().symbols_mut().extend(letting_vars);
@@ -235,7 +235,8 @@ fn parse_letting_statement(letting_statement_list: Node, source_code: &str) -> S
 
 fn parse_constraint(constraint: Node, source_code: &str, root: &Node) -> Expression {
     match constraint.kind() {
-        "constraint" | "expression" => child_expr(constraint, source_code, root),
+        "constraint" | "expression" | "boolean_expr" | "comparison_expr" | "arithmetic_expr"
+        | "primary_expr" | "sub_expr" => child_expr(constraint, source_code),
         "not_expr" => Expression::Not(
             Metadata::new(),
             Box::new(child_expr(constraint, source_code, root)),
