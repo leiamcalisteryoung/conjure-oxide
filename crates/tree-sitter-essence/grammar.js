@@ -40,7 +40,7 @@ module.exports = grammar({
     letting_statement: $ => seq($.variable_list, "be", choice($.expression, seq("domain", $.domain))),
 
     // Constraints
-    constraint_list: $ => seq("such that", $.expression, optional(repeat(seq(",", $.expression)))),
+    constraint_list: $ => seq("such that", $.expression, optional(repeat(seq(",", $.expression))), optional(",")),
 
     // Expression hierarchy
     expression: $ => choice($.boolean_expr, $.comparison_expr, $.arithmetic_expr),
@@ -52,10 +52,10 @@ module.exports = grammar({
       $.implication,
       $.quantifier_expr
     ),
-    not_expr: $ => prec(20, seq("!", $.boolean_expr)),
-    and_expr: $ => prec(-1, prec.left(seq($.boolean_expr, "/\\", $.boolean_expr))),
-    or_expr: $ => prec(-2, prec.left(seq($.boolean_expr, "\\/", $.boolean_expr))),
-    implication: $ => prec(-4, prec.left(seq($.boolean_expr, "->", $.boolean_expr))),
+    not_expr: $ => prec(20, seq("!", choice($.boolean_expr, $.comparison_expr, $.primary_expr))),
+    and_expr: $ => prec(-1, prec.left(seq(choice($.boolean_expr, $.comparison_expr, $.primary_expr), "/\\", choice($.boolean_expr, $.comparison_expr, $.primary_expr)))),
+    or_expr: $ => prec(-2, prec.left(seq(choice($.boolean_expr, $.comparison_expr, $.primary_expr), "\\/", choice($.boolean_expr, $.comparison_expr, $.primary_expr)))),
+    implication: $ => prec(-4, prec.left(seq(choice($.boolean_expr, $.comparison_expr, $.primary_expr), "->", choice($.boolean_expr, $.comparison_expr, $.primary_expr)))),
     quantifier_expr: $ => prec(-10, seq(
       choice("and", "or", "min", "max", "sum", "allDiff"),
       "([",
@@ -63,11 +63,12 @@ module.exports = grammar({
       "])"
     )),
 
-    comparison_expr: $ => prec(0, seq(
-      $.arithmetic_expr, 
-      choice("=", "!=", "<=", ">=", "<", ">"), 
-      $.arithmetic_expr
-    )),
+    comparison_expr: $ => prec(0, prec.left(seq(
+      choice($.boolean_expr, $.arithmetic_expr), 
+      $.comparative_op,
+      choice($.boolean_expr, $.arithmetic_expr)
+    ))),
+    comparative_op: $ => choice("=", "!=", "<=", ">=", "<", ">"),
 
     arithmetic_expr: $ => choice(
       $.primary_expr,
@@ -78,14 +79,17 @@ module.exports = grammar({
       $.sum_expr
     ),
     primary_expr: $ => choice(
-      seq("(", $.expression, ")"),
+      $.sub_expr,
       $.constant,
       $.variable
     ),
+    sub_expr: $ => seq("(", $.expression, ")"),
     negative_expr: $ => prec(15, prec.left(seq("-", $.arithmetic_expr))),
     abs_value: $ => prec(20, seq("|", $.arithmetic_expr, "|")),
     exponent: $ => prec(18, prec.right(seq($.arithmetic_expr, "**", $.arithmetic_expr))),
-    product_expr: $ => prec(10, prec.left(seq($.arithmetic_expr, choice("*", "/", "%"), $.arithmetic_expr))),
-    sum_expr: $ => prec(1, prec.left(seq($.arithmetic_expr, choice("+", "-"), $.arithmetic_expr))),
+    product_expr: $ => prec(10, prec.left(seq($.arithmetic_expr, $.mulitcative_op, $.arithmetic_expr))),
+    mulitcative_op: $ => choice("*", "/", "%"),
+    sum_expr: $ => prec(1, prec.left(seq($.arithmetic_expr, $.additive_op, $.arithmetic_expr))),
+    additive_op: $ => choice("+", "-"),
   }
 });
