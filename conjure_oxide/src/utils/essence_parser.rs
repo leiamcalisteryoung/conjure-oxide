@@ -236,7 +236,7 @@ fn parse_letting_statement(letting_statement_list: Node, source_code: &str) -> S
 fn parse_constraint(constraint: Node, source_code: &str, root: &Node) -> Expression {
     match constraint.kind() {
         "constraint" | "expression" | "boolean_expr" | "comparison_expr" | "arithmetic_expr"
-        | "primary_expr" | "sub_expr" => child_expr(constraint, source_code),
+        | "primary_expr" | "sub_expr" => child_expr(constraint, source_code, root),
         "not_expr" => Expression::Not(
             Metadata::new(),
             Box::new(child_expr(constraint, source_code, root)),
