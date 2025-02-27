@@ -41,7 +41,7 @@ pub fn parse_essence_file_native(
                 let mut constraint_vec: Vec<Expression> = Vec::new();
                 for constraint in named_children(&statement) {
                     if constraint.kind() != "single_line_comment" {
-                        constraint_vec.push(parse_constraint(constraint, &source_code));
+                        constraint_vec.push(parse_constraint(constraint, &source_code, &statement));
                     }
                 }
                 model.as_submodel_mut().add_constraints(constraint_vec);
@@ -57,6 +57,19 @@ pub fn parse_essence_file_native(
                     format!("Error:\n\t{}/{}.{}:\n{}", path, filename, extension, message)
                 )));
             }
+            "dominance_relation" => {
+                let inner = statement
+                    .child(1)
+                    .expect("Expected a sub-expression inside `dominanceRelation`");
+                let expr = parse_constraint(inner, &source_code, &statement);
+                let dominance = Expression::DominanceRelation(Metadata::new(), Box::new(expr));
+                if model.dominance.is_some() {
+                    return Err(EssenceParseError::ParseError(Error::Parse(
+                        "Duplicate dominance relation".to_owned(),
+                    )));
+                }
+                model.dominance = Some(dominance);
+            }
             _ => {
                 let kind = statement.kind();
                 return Err(EssenceParseError::ParseError(Error::Parse(
@@ -69,8 +82,9 @@ pub fn parse_essence_file_native(
 }
 
 fn get_tree(path: &str, filename: &str, extension: &str) -> (Tree, String) {
-    let source_code = fs::read_to_string(format!("{path}/{filename}.{extension}"))
-        .expect("Failed to read the source code file");
+    let pth = format!("{path}/{filename}.{extension}");
+    let source_code = fs::read_to_string(&pth)
+        .unwrap_or_else(|_| panic!("Failed to read the source code file {}", pth));
     let mut parser = Parser::new();
     parser.set_language(&LANGUAGE.into()).unwrap();
     (
@@ -207,7 +221,7 @@ fn parse_letting_statement(letting_statement_list: Node, source_code: &str) -> S
                 for name in temp_symbols {
                     symbol_table.insert(Rc::new(Declaration::new_value_letting(
                         Name::UserName(String::from(name)),
-                        parse_constraint(expr_or_domain, source_code),
+                        parse_constraint(expr_or_domain, source_code, &letting_statement_list),
                     )));
                 }
             }
@@ -225,25 +239,25 @@ fn parse_letting_statement(letting_statement_list: Node, source_code: &str) -> S
     symbol_table
 }
 
-fn parse_constraint(constraint: Node, source_code: &str) -> Expression {
+fn parse_constraint(constraint: Node, source_code: &str, root: &Node) -> Expression {
     match constraint.kind() {
         "constraint" | "expression" | "boolean_expr" | "comparison_expr" | "arithmetic_expr"
         | "primary_expr" | "sub_expr" => child_expr(constraint, source_code),
         "not_expr" => Expression::Not(
             Metadata::new(),
-            Box::new(child_expr(constraint, source_code)),
+            Box::new(child_expr(constraint, source_code, root)),
         ),
         "abs_value" => Expression::Abs(
             Metadata::new(),
-            Box::new(child_expr(constraint, source_code)),
+            Box::new(child_expr(constraint, source_code, root)),
         ),
         "negative_expr" => Expression::Neg(
             Metadata::new(),
-            Box::new(child_expr(constraint, source_code)),
+            Box::new(child_expr(constraint, source_code, root)),
         ),
         "exponent" | "product_expr" | "sum_expr" | "comparison" | "and_expr" | "or_expr"
         | "implication" => {
-            let expr1 = child_expr(constraint, source_code);
+            let expr1 = child_expr(constraint, source_code, root);
             let op = constraint.child(1).unwrap_or_else(|| {
                 panic!(
                     "Error: missing node in expression of kind {}",
@@ -257,7 +271,7 @@ fn parse_constraint(constraint: Node, source_code: &str) -> Expression {
                     constraint.kind()
                 )
             });
-            let expr2 = parse_constraint(expr2_node, source_code);
+            let expr2 = parse_constraint(expr2_node, source_code, root);
 
             match op_type {
                 "**" => Expression::UnsafePow(Metadata::new(), Box::new(expr1), Box::new(expr2)),
@@ -287,7 +301,7 @@ fn parse_constraint(constraint: Node, source_code: &str) -> Expression {
         "quantifier_expr" => {
             let mut expr_list = Vec::new();
             for expr in named_children(&constraint) {
-                expr_list.push(parse_constraint(expr, source_code));
+                expr_list.push(parse_constraint(expr, source_code, root));
             }
 
             let quantifier = constraint.child(0).unwrap_or_else(|| {
@@ -338,9 +352,18 @@ fn parse_constraint(constraint: Node, source_code: &str) -> Expression {
                 Atom::Reference(Name::UserName(variable_name)),
             )
         }
-        "ERROR" => {
-            panic!("");
-        }
+        "from_solution" => match root.kind() {
+            "dominance_relation" => {
+                let inner = child_expr(constraint, source_code, root);
+                match inner {
+                    Expression::Atomic(_, _) => {
+                        Expression::FromSolution(Metadata::new(), Box::new(inner))
+                    }
+                    _ => panic!("Expression inside a `fromSolution()` must be a variable name"),
+                }
+            }
+            _ => panic!("`fromSolution()` is only allowed inside dominance relation definitions"),
+        },
         _ => panic!("{} is not a recognized node kind", constraint.kind()),
     }
 }
@@ -349,11 +372,11 @@ fn named_children<'a>(node: &'a Node<'a>) -> impl Iterator<Item = Node<'a>> + 'a
     (0..node.named_child_count()).filter_map(|i| node.named_child(i))
 }
 
-fn child_expr(node: Node, source_code: &str) -> Expression {
+fn child_expr(node: Node, source_code: &str, root: &Node) -> Expression {
     let child = node
         .named_child(0)
         .unwrap_or_else(|| panic!("Error: missing node in expression of kind {}", node.kind()));
-    parse_constraint(child, source_code)
+    parse_constraint(child, source_code, root)
 }
 
 fn parse_error(node: Node, source_code: &str) -> String {
