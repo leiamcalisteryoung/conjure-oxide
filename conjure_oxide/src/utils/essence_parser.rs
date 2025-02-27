@@ -374,3 +374,31 @@ fn child_expr(node: Node, source_code: &str, root: &Node) -> Expression {
         .unwrap_or_else(|| panic!("Error: missing node in expression of kind {}", node.kind()));
     parse_constraint(child, source_code, root)
 }
+
+fn parse_error(node: Node, source_code: &str) -> String {
+    let line = node.start_position().row + 1;
+    let character = node.start_position().column + 1;
+    let line_text = source_code
+        .lines()
+        .nth(line - 1)
+        .unwrap_or("Line not found");
+    let child = node.named_child(0);
+    let pointer_line = format!("  |{}^", " ".repeat(character));
+
+    match child {
+        Some(child_node) => match child_node.kind() {
+            "comparative_op" => {
+                return format!(
+                    "{}:{}:\n|\n{}| {}\n{}\nMissing Expression",
+                    line, character, line, line_text, pointer_line
+                );
+            }
+            _ => {
+                panic!("");
+            }
+        },
+        None => {
+            panic!("");
+        }
+    }
+}
