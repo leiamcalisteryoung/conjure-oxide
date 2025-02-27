@@ -1,0 +1,31 @@
+{
+  "constraints": {
+    "Root": [
+      {
+        "clean": false,
+        "etype": null
+      },
+      [
+        {
+          "Atomic": [
+            {
+              "clean": false,
+              "etype": null
+            },
+            {
+              "Literal": {
+                "Bool": true
+              }
+            }
+          ]
+        }
+      ]
+    ]
+  },
+  "symbols": {
+    "id": 7,
+    "next_machine_name": 0,
+    "parent": null,
+    "table": []
+  }
+}

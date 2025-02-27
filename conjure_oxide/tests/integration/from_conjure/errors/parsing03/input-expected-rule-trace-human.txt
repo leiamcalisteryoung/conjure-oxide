@@ -1,0 +1,22 @@
+Model before rewriting:
+
+
+such that
+
+
+
+--
+
+, 
+   ~~> eval_root ([("Constant", 9001)]) 
+true 
+
+--
+
+Final model:
+
+
+such that
+
+true
+

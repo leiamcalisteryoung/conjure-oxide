@@ -1,0 +1,26 @@
+Model before rewriting:
+
+letting given1 be 0
+letting given2 be false
+
+such that
+
+
+
+--
+
+, 
+   ~~> eval_root ([("Constant", 9001)]) 
+true 
+
+--
+
+Final model:
+
+letting given1 be 0
+letting given2 be false
+
+such that
+
+true
+

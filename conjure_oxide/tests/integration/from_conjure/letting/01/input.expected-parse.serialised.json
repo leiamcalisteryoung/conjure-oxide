@@ -1,0 +1,70 @@
+{
+  "constraints": {
+    "Root": [
+      {
+        "clean": false,
+        "etype": null
+      },
+      []
+    ]
+  },
+  "symbols": {
+    "id": 4,
+    "next_machine_name": 0,
+    "parent": null,
+    "table": [
+      [
+        {
+          "UserName": "given1"
+        },
+        {
+          "id": 477,
+          "kind": {
+            "ValueLetting": {
+              "Atomic": [
+                {
+                  "clean": false,
+                  "etype": null
+                },
+                {
+                  "Literal": {
+                    "Int": 0
+                  }
+                }
+              ]
+            }
+          },
+          "name": {
+            "UserName": "given1"
+          }
+        }
+      ],
+      [
+        {
+          "UserName": "given2"
+        },
+        {
+          "id": 478,
+          "kind": {
+            "ValueLetting": {
+              "Atomic": [
+                {
+                  "clean": false,
+                  "etype": null
+                },
+                {
+                  "Literal": {
+                    "Bool": false
+                  }
+                }
+              ]
+            }
+          },
+          "name": {
+            "UserName": "given2"
+          }
+        }
+      ]
+    ]
+  }
+}
