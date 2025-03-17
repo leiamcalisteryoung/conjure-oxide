@@ -13,97 +13,7 @@
               "etype": null
             },
             {
-              "UnsafeSlice": [
-                {
-                  "clean": false,
-                  "etype": null
-                },
-                {
-                  "Atomic": [
-                    {
-                      "clean": false,
-                      "etype": null
-                    },
-                    {
-                      "Reference": {
-                        "UserName": "a"
-                      }
-                    }
-                  ]
-                },
-                [
-                  {
-                    "Atomic": [
-                      {
-                        "clean": false,
-                        "etype": null
-                      },
-                      {
-                        "Literal": {
-                          "Int": 1
-                        }
-                      }
-                    ]
-                  },
-                  null
-                ]
-              ]
-            }
-          ]
-        },
-        {
-          "AllDiff": [
-            {
-              "clean": false,
-              "etype": null
-            },
-            {
-              "UnsafeSlice": [
-                {
-                  "clean": false,
-                  "etype": null
-                },
-                {
-                  "Atomic": [
-                    {
-                      "clean": false,
-                      "etype": null
-                    },
-                    {
-                      "Reference": {
-                        "UserName": "a"
-                      }
-                    }
-                  ]
-                },
-                [
-                  {
-                    "Atomic": [
-                      {
-                        "clean": false,
-                        "etype": null
-                      },
-                      {
-                        "Literal": {
-                          "Int": 2
-                        }
-                      }
-                    ]
-                  },
-                  null
-                ]
-              ]
-            }
-          ]
-        },
-        {
-          "AllDiff": [
-            {
-              "clean": false,
-              "etype": null
-            },
-            {
-              "UnsafeSlice": [
+              "SafeSlice": [
                 {
                   "clean": false,
                   "etype": null
@@ -148,7 +58,7 @@
               "etype": null
             },
             {
-              "UnsafeSlice": [
+              "SafeSlice": [
                 {
                   "clean": false,
                   "etype": null
@@ -193,7 +103,7 @@
               "etype": null
             },
             {
-              "UnsafeSlice": [
+              "SafeSlice": [
                 {
                   "clean": false,
                   "etype": null
@@ -212,7 +122,96 @@
                   ]
                 },
                 [
-                  null,
+                  {
+                    "Atomic": [
+                      {
+                        "clean": false,
+                        "etype": null
+                      },
+                      {
+                        "Literal": {
+                          "Int": 1
+                        }
+                      }
+                    ]
+                  },
+                  null
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "AllDiff": [
+            {
+              "clean": false,
+              "etype": null
+            },
+            {
+              "SafeSlice": [
+                {
+                  "clean": false,
+                  "etype": null
+                },
+                {
+                  "Atomic": [
+                    {
+                      "clean": false,
+                      "etype": null
+                    },
+                    {
+                      "Reference": {
+                        "UserName": "a"
+                      }
+                    }
+                  ]
+                },
+                [
+                  {
+                    "Atomic": [
+                      {
+                        "clean": false,
+                        "etype": null
+                      },
+                      {
+                        "Literal": {
+                          "Int": 2
+                        }
+                      }
+                    ]
+                  },
+                  null
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "AllDiff": [
+            {
+              "clean": false,
+              "etype": null
+            },
+            {
+              "SafeSlice": [
+                {
+                  "clean": false,
+                  "etype": null
+                },
+                {
+                  "Atomic": [
+                    {
+                      "clean": false,
+                      "etype": null
+                    },
+                    {
+                      "Reference": {
+                        "UserName": "a"
+                      }
+                    }
+                  ]
+                },
+                [
                   {
                     "Atomic": [
                       {
@@ -225,7 +224,8 @@
                         }
                       }
                     ]
-                  }
+                  },
+                  null
                 ]
               ]
             }
@@ -238,7 +238,7 @@
               "etype": null
             },
             {
-              "UnsafeIndex": [
+              "SafeIndex": [
                 {
                   "clean": false,
                   "etype": null
@@ -308,7 +308,7 @@
               "etype": null
             },
             {
-              "UnsafeIndex": [
+              "SafeIndex": [
                 {
                   "clean": false,
                   "etype": null
@@ -385,7 +385,7 @@
           "UserName": "MATRIX"
         },
         {
-          "id": 95,
+          "id": 114,
           "kind": {
             "DomainLetting": {
               "DomainMatrix": [
@@ -434,7 +434,7 @@
           "UserName": "a"
         },
         {
-          "id": 97,
+          "id": 116,
           "kind": {
             "DecisionVariable": {
               "domain": {
