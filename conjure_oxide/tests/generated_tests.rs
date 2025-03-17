@@ -69,7 +69,7 @@ impl Default for TestConfig {
             enable_extra_validation: false,
             solve_with_minion: true,
             compare_solver_solutions: false,
-            validate_rule_traces: false,
+            validate_rule_traces: true,
         }
     }
 }
@@ -214,6 +214,15 @@ fn integration_test_inner(
     let accept = env::var("ACCEPT").unwrap_or("false".to_string()) == "true";
     let verbose = env::var("VERBOSE").unwrap_or("false".to_string()) == "true";
 
+    // When running accept=true, only regenerate the expected files for these tests if the test
+    // fails.
+    //
+    // This reduces unnecessary git diffs when only the id of items in a model changes. These
+    // change every run of the tester, but do not change the correctness of the model.
+    let mut parsed_model_dirty = false;
+    let mut parsed_native_model_dirty = false;
+    let mut rewritten_model_dirty = false;
+
     if verbose {
         println!(
             "Running integration test for {}/{}, ACCEPT={}",
@@ -337,35 +346,30 @@ fn integration_test_inner(
         );
     }
 
-    // Stage 4a: Check that the generated rules match expected traces (run unless explicitly disabled)
-    let (generated_rule_trace_human, expected_rule_trace_human) = if config.validate_rule_traces {
-        let generated = read_human_rule_trace(path, essence_base, "generated")?;
-        let expected = read_human_rule_trace(path, essence_base, "expected")?;
-
-        // Perform the assertion immediately
-        assert_eq!(
-            expected, generated,
-            "Generated rule trace does not match the expected trace!"
-        );
-
-        (Some(generated), Some(expected))
-    } else {
-        (None, None) // Avoid uninitialized variables when 4a is disabled
-    };
-
+    // Before testing against the generated tests, if the generated tests don't exist, make them.
+    //
+    // We rewrite out-of-date tests (if necessary) after testing them.
     if accept {
         // Overwrite expected parse and rewrite models if enabled
-        if config.enable_native_parser {
+        if config.enable_native_parser
+            && !expected_exists_for(path, essence_base, "parse", "serialised.json")
+        {
             model_native.clone().expect("model_native should exist");
             copy_generated_to_expected(path, essence_base, "parse", "serialised.json")?;
         }
-        if config.parse_model_default {
+        if config.parse_model_default
+            && !expected_exists_for(path, essence_base, "parse", "serialised.json")
+        {
             copy_generated_to_expected(path, essence_base, "parse", "serialised.json")?;
         }
-        if config.apply_rewrite_rules {
+        if config.apply_rewrite_rules
+            && !expected_exists_for(path, essence_base, "rewrite", "serialised.json")
+        {
             copy_generated_to_expected(path, essence_base, "rewrite", "serialised.json")?;
         }
 
+        // Always overwrite these ones. Unlike the rest, we don't need to selectively do these
+        // based on the test results, so they don't get done later.
         if config.solve_with_minion {
             copy_generated_to_expected(path, essence_base, "minion", "solutions.json")?;
         }
@@ -378,26 +382,89 @@ fn integration_test_inner(
 
     // Check Stage 1b (native parser)
     if config.enable_native_parser {
-        let expected_model = read_model_json(&context, path, essence_base, "expected", "parse")?;
-        let model_native = model_native.expect("model_native should exist here");
-        assert_eq!(model_native, expected_model);
+        let expected_model = read_model_json(&context, path, essence_base, "expected", "parse");
+
+        // A JSON reading error could just mean that the ast has changed since the file was
+        // generated.
+        //
+        // When ACCEPT=true, regenerate the json instead of failing the test.
+        match expected_model {
+            Err(_) if accept => {
+                parsed_native_model_dirty = true;
+            }
+            Err(e) => {
+                return Err(Box::new(e));
+            }
+            Ok(expected_model) => {
+                let model_native = model_native
+                    .clone()
+                    .expect("model_native should exist here");
+                if accept {
+                    parsed_native_model_dirty = model_native != expected_model;
+                } else {
+                    assert_eq!(model_native, expected_model);
+                }
+            }
+        }
     }
 
-    // TODO (yb33): Investigate: for some reason, model.expect(), and model from "expected" file aren't identical.
     // Check Stage 1a (parsed model)
     if config.parse_model_default {
-        let expected_model = read_model_json(&context, path, essence_base, "expected", "parse")?;
-        let model_from_file = read_model_json(&context, path, essence_base, "generated", "parse")?;
-        assert_eq!(model_from_file, expected_model);
+        let expected_model = read_model_json(&context, path, essence_base, "expected", "parse");
+        let model_from_file = read_model_json(&context, path, essence_base, "generated", "parse");
+
+        // A JSON reading error could just mean that the ast has changed since the file was
+        // generated.
+        //
+        // When ACCEPT=true, regenerate the json instead of failing the test.
+        match (expected_model, model_from_file) {
+            (Err(_), _) | (_, Err(_)) if accept => {
+                parsed_model_dirty = true;
+            }
+
+            (Err(e), _) => {
+                return Err(Box::new(e));
+            }
+
+            (_, Err(e)) => {
+                return Err(Box::new(e));
+            }
+
+            (Ok(expected_model), Ok(model_from_file)) if accept => {
+                parsed_model_dirty = model_from_file != expected_model;
+            }
+
+            (Ok(expected_model), Ok(model_from_file)) => {
+                assert_eq!(model_from_file, expected_model);
+            }
+        }
     }
 
     // Check Stage 2a (rewritten model)
     if config.apply_rewrite_rules {
-        let expected_model = read_model_json(&context, path, essence_base, "expected", "rewrite")?;
-        assert_eq!(
-            rewritten_model.expect("Rewritten model must be present in 2a"),
-            expected_model
-        );
+        let expected_model = read_model_json(&context, path, essence_base, "expected", "rewrite");
+        // A JSON reading error could just mean that the ast has changed since the file was
+        // generated.
+        //
+        // When ACCEPT=true, regenerate the json instead of failing the test.
+        match expected_model {
+            Err(_) if accept => {
+                rewritten_model_dirty = true;
+            }
+            Err(e) => {
+                return Err(Box::new(e));
+            }
+            Ok(expected_model) => {
+                let rewritten_model =
+                    rewritten_model.expect("Rewritten model must be present in 2a");
+
+                if accept {
+                    rewritten_model_dirty = rewritten_model != expected_model;
+                } else {
+                    assert_eq!(rewritten_model, expected_model);
+                }
+            }
+        }
     }
 
     // Check Stage 3a (solutions)
@@ -408,14 +475,29 @@ fn integration_test_inner(
         assert_eq!(username_solutions_json, expected_solutions_json);
     }
 
-    // Final assertion for rule trace (only if 4a was enabled)
-    if let (Some(expected), Some(generated)) =
-        (expected_rule_trace_human, generated_rule_trace_human)
-    {
+    // Stage 4a: Check that the generated rules trace matches the expected
+    if config.validate_rule_traces {
+        let generated = read_human_rule_trace(path, essence_base, "generated")?;
+        let expected = read_human_rule_trace(path, essence_base, "expected")?;
+
         assert_eq!(
             expected, generated,
             "Generated rule trace does not match the expected trace!"
         );
+    };
+
+    if accept {
+        // Overwrite expected parse and rewrite models if needed
+        if config.enable_native_parser && parsed_native_model_dirty {
+            model_native.clone().expect("model_native should exist");
+            copy_generated_to_expected(path, essence_base, "parse", "serialised.json")?;
+        }
+        if config.parse_model_default && parsed_model_dirty {
+            copy_generated_to_expected(path, essence_base, "parse", "serialised.json")?;
+        }
+        if config.apply_rewrite_rules && rewritten_model_dirty {
+            copy_generated_to_expected(path, essence_base, "rewrite", "serialised.json")?;
+        }
     }
     save_stats_json(context, path, essence_base)?;
 
@@ -444,6 +526,10 @@ fn copy_generated_to_expected(
         format!("{path}/{test_name}.expected-{stage}.{extension}"),
     )?;
     Ok(())
+}
+
+fn expected_exists_for(path: &str, test_name: &str, stage: &str, extension: &str) -> bool {
+    Path::new(&format!("{path}/{test_name}.expected-{stage}.{extension}")).exists()
 }
 
 fn normalize_solutions_for_comparison(
@@ -488,13 +574,19 @@ fn assert_vector_operators_have_partially_evaluated(model: &conjure_core::Model)
         use conjure_core::ast::Expression::*;
         match node {
             Sum(_, ref vec) => assert_constants_leq_one(&node, vec),
-            Min(_, ref vec) => assert_constants_leq_one(&node, vec),
-            Max(_, ref vec) => assert_constants_leq_one(&node, vec),
-            Or(_, ref vec) => assert_constants_leq_one(&node, vec),
-            And(_, ref vec) => assert_constants_leq_one(&node, vec),
+            Min(_, ref vec) => assert_constants_leq_one_vec_lit(&node, vec),
+            Max(_, ref vec) => assert_constants_leq_one_vec_lit(&node, vec),
+            Or(_, ref vec) => assert_constants_leq_one_vec_lit(&node, vec),
+            And(_, ref vec) => assert_constants_leq_one_vec_lit(&node, vec),
             _ => (),
         };
     }
+}
+
+fn assert_constants_leq_one_vec_lit(parent_expr: &Expression, expr: &Expression) {
+    if let Some(exprs) = expr.clone().unwrap_list() {
+        assert_constants_leq_one(parent_expr, &exprs);
+    };
 }
 
 fn assert_constants_leq_one(parent_expr: &Expression, exprs: &[Expression]) {
