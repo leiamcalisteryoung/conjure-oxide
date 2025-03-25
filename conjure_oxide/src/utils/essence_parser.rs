@@ -17,6 +17,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub fn parse_essence_file_native(
     filepath: &str,
+    filepath: &str,
     context: Arc<RwLock<Context<'static>>>,
 ) -> Result<Model, EssenceParseError> {
     let (tree, source_code) = get_tree(filepath);
@@ -25,8 +26,10 @@ pub fn parse_essence_file_native(
     if root_node.has_error() {
         let messages = parse_error(root_node, &source_code);
         return Err(EssenceParseError::ParseError(Error::Parse(format!(
-            "{}:{}", filepath, messages.join("\n")
-        ))))
+            "{}:{}",
+            filepath,
+            messages.join("\n")
+        ))));
     }
 
     let mut model = Model::new(context);
@@ -352,6 +355,9 @@ fn parse_constraint(constraint: Node, source_code: &str, root: &Node) -> Express
                 Atom::Reference(Name::UserName(variable_name)),
             )
         }
+        "ERROR" => {
+            panic!("");
+        }
         "from_solution" => match root.kind() {
             "dominance_relation" => {
                 let inner = child_expr(constraint, source_code, root);
@@ -414,17 +420,12 @@ fn parse_error(node: Node, source_code: &str) -> Vec<String> {
     //         BTreeSet::from(["letting_statement".to_string()])
     //     )
     // ]);
-    check_node(node,&mut messages, source_code);
-    
-    return messages;
+    check_node(node, &mut messages, source_code);
 
+    return messages;
 }
 
-fn check_node(
-    node: Node, 
-    list: &mut Vec<String>, 
-    source_code: &str, 
-) {
+fn check_node(node: Node, list: &mut Vec<String>, source_code: &str) {
     let mut i = 0;
     for child_node in named_children(&node) {
         check_node(child_node, list, source_code);
@@ -435,7 +436,11 @@ fn check_node(
             continue;
         }
 
-        let message = format!("{}Invalid {}", get_line(child_node, source_code), child_node.kind());
+        let message = format!(
+            "{}Invalid {}",
+            get_line(child_node, source_code),
+            child_node.kind()
+        );
         list.push(message);
         break;
     }
@@ -444,8 +449,19 @@ fn check_node(
 fn get_line(node: Node, source_code: &str) -> String {
     let line = node.start_position().row + 1;
     let character = node.start_position().column + 1;
-    let line_text = source_code.lines().nth(line - 1).unwrap_or("Line not found");
+    let line_text = source_code
+        .lines()
+        .nth(line - 1)
+        .unwrap_or("Line not found");
     let pointer_line = format!("  |{}^", " ".repeat(character));
 
-    return format!("{}:{}:\n|\n{}|  {}\n{}\nInvalid {}", line, character, line, line_text, pointer_line, node.kind())
+    return format!(
+        "{}:{}:\n|\n{}|  {}\n{}\nInvalid {}",
+        line,
+        character,
+        line,
+        line_text,
+        pointer_line,
+        node.kind()
+    );
 }
