@@ -26,11 +26,20 @@ module.exports = grammar({
     FALSE: $ => "false",
     variable: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
+  
+    // reserved_keyword: $ => choice(
+    //   $.SUCH_THAT, $.FIND, $.LETTING
+    // ),
+    SUCH_THAT: $ => "such that",
+    FIND: $ => "find",
+    LETTING: $ => "letting",
+    COLON: $ => ":",
+
     // Find statements
-    find_statement_list: $ => seq("find", repeat(field("find_statement", $.find_statement))),
+    find_statement_list: $ => prec.right(seq(field("find", $.FIND), repeat1(field("find_statement", $.find_statement)))),
     find_statement: $ => seq(
       field("variables", $.variable_list),
-      ":",
+      field("colon", $.COLON),
       field("domain", $.domain),
       optional(",")
     ),
@@ -69,7 +78,7 @@ module.exports = grammar({
     ),
 
     // Letting statements
-    letting_statement_list: $ => seq("letting", repeat(field("letting_statement", $.letting_statement))),
+    letting_statement_list: $ => prec.right(seq(field("letting", $.LETTING), repeat(field("letting_statement", $.letting_statement)))),
     letting_statement: $ => seq(
       field("variable_list", $.variable_list), 
       "be", 
@@ -77,12 +86,12 @@ module.exports = grammar({
     ),
 
     // Constraints
-    constraint_list: $ => seq(
-      "such that", 
-      field("first_expression", $.expression), 
+    constraint_list: $ => prec.right(seq(
+      field("such_that", $.SUCH_THAT), 
+      field("expression", $.expression), 
       optional(repeat(seq(",", field("expression", $.expression)))), 
       optional(",")
-    ),
+    )),
 
     // Expression hierarchy
     expression: $ => choice(
