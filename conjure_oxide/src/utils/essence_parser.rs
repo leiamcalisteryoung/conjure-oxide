@@ -356,9 +356,6 @@ fn parse_constraint(constraint: Node, source_code: &str, root: &Node) -> Express
                 Atom::Reference(Name::UserName(variable_name)),
             )
         }
-        "ERROR" => {
-            panic!("");
-        }
         "from_solution" => match root.kind() {
             "dominance_relation" => {
                 let inner = child_expr(constraint, source_code, root);
