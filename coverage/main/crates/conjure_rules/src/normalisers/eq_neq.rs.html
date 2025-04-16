@@ -92,7 +92,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">use conjure_core::metadata::Metadata;</pre>
+                <pre class="has-background-white py-0 px-2">use conjure_core::rule_engine::{</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -108,7 +108,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">use conjure_core::rule_engine::{</pre>
+                <pre class="has-background-white py-0 px-2">    register_rule, ApplicationError::RuleNotApplicable, ApplicationResult, Reduction,</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -124,7 +124,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">    register_rule, ApplicationError::RuleNotApplicable, ApplicationResult, Reduction,</pre>
+                <pre class="has-background-white py-0 px-2">};</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -140,7 +140,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2">};</pre>
+                <pre class="has-background-white py-0 px-2"></pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -156,7 +156,7 @@
             </div>
             <div class="column has-background-white p-0"
                  role="cell">
-                <pre class="has-background-white py-0 px-2"></pre>
+                <pre class="has-background-white py-0 px-2">use conjure_essence_macros::essence_expr;</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -364,7 +364,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">                Ok(Reduction::pure(Eq(Metadata::new(), b.clone(), c.clone())))</pre>
+                <pre class="has-background-success-light py-0 px-2">                Ok(Reduction::pure(essence_expr!(&amp;b = &amp;c)))</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -652,7 +652,7 @@
             </div>
             <div class="column has-background-success-light p-0"
                  role="cell">
-                <pre class="has-background-success-light py-0 px-2">                Ok(Reduction::pure(Neq(Metadata::new(), b.clone(), c.clone())))</pre>
+                <pre class="has-background-success-light py-0 px-2">                Ok(Reduction::pure(essence_expr!(&amp;b != &amp;c)))</pre>
             </div>
         </div><div class="columns p-0 m-0" role="row">
             <div
@@ -755,7 +755,7 @@
         <footer class="footer">
             
                 <div class="content has-text-centered">
-                    <p class="heading">Date: 2025-04-15 20:03</p>
+                    <p class="heading">Date: 2025-04-16 13:55</p>
                 </div>
             
         </footer>
