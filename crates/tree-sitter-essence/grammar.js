@@ -14,8 +14,15 @@ module.exports = grammar ({
       field("find_statement_list", $.find_statement_list),
       field("constraint_list", $.constraint_list),
       field("letting_statement_list", $.letting_statement_list),
-      field("dominance_relation", $.dominance_relation)
+      field("dominance_relation", $.dominance_relation),
+      field("find", $.FIND),
+      field("letting", $.LETTING),
+      field("such_that", $.SUCH_THAT),
     )),
+
+    SUCH_THAT: $ => "such that",
+    FIND: $ => "find",
+    LETTING: $ => "letting",
 
     single_line_comment: $ => token(seq('$', /.*/)),
 
@@ -35,6 +42,16 @@ module.exports = grammar ({
     FALSE: $ => choice("false", "FALSE"),
 
     identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
+    // identifier: $ => {
+    //   const keyword = choice('find', 'letting', 'such', 'that', 'dominanceRelation');
+    //   return token(seq(
+    //     // Negative lookahead to prevent keywords as identifiers
+    //     alias(choice(
+    //       seq(not(keyword), /[a-zA-Z_][a-zA-Z0-9_]*/),
+    //       'identifier'
+    //     )
+    //   )))
+    // },
 
     //meta-variable (aka template argument)
     metavar: $ => seq("&", field("identifier", $.identifier)),
@@ -58,14 +75,14 @@ module.exports = grammar ({
     ),
     bool_domain: $ => "bool",
 
-    int_domain: $ => prec.left(seq(
+    int_domain: $ => seq(
       "int",
       optional(seq(
         "(",
         field("ranges", $.range_list),
         ")"
       ))
-    )),
+    ),
 
     range_list: $ => prec(2, commaSep1(choice($.int_range, $.integer))),
 
@@ -164,9 +181,9 @@ module.exports = grammar ({
     ),
 
     comparison_expr: $ => prec(0, prec.left(seq(
-      field("left", choice($.bool_expression, $.arith_expression)), 
+      field("left", $.arith_expression), 
       field("operator", choice("=", "!=", "<=", ">=", "<", ">")),
-      field("right", choice($.bool_expression, $.arith_expression))
+      field("right", $.arith_expression)
     ))),
 
     sub_bool_expr: $ => prec(1, seq("(", choice($.bool_expression, $.atom), ")")),
