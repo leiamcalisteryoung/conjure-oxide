@@ -24,16 +24,10 @@ pub fn parse_essence_file_native(
     path: &str,
     context: Arc<RwLock<Context<'static>>>,
 ) -> Result<Model, EssenceParseError> {
-    let source_code = fs::read_to_string(path)
+    let source_text = fs::read_to_string(path)
         .unwrap_or_else(|_| panic!("Failed to read the source code file {}", path));
-    parse_essence_with_context(&source_code, context)
-}
 
-pub fn parse_essence_with_context(
-    src: &str,
-    context: Arc<RwLock<Context<'static>>>,
-) -> Result<Model, EssenceParseError> {
-    let (tree, source_code) = match get_tree(src) {
+        let (tree, source_code) = match get_tree(&source_text) {
         Some(tree) => tree,
         None => {
             return Err(EssenceParseError::TreeSitterError(
@@ -46,10 +40,10 @@ pub fn parse_essence_with_context(
     if root_node.has_error() {
         let mut messages: Vec<String> = Vec::new();
         parse_error(root_node, &source_code, &mut messages);
-        let messages_joined = messages.join(&format!("\n{}:", src));
+        let messages_joined = messages.join(&format!("\n{}:", path));
         return Err(EssenceParseError::ParseError(Error::Parse(format!(
             "\n{}:{}",
-            src, messages_joined
+            path, messages_joined
         ))));
     }
 
@@ -106,4 +100,5 @@ pub fn parse_essence_with_context(
         }
     }
     Ok(model)
+
 }
