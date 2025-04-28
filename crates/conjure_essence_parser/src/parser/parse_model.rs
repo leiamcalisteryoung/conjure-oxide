@@ -40,9 +40,20 @@ pub fn parse_essence_with_context(
             ))
         }
     };
+    
+    let root_node = tree.root_node();
+    if root_node.has_error() {
+        let mut messages: Vec<String> = Vec::new();
+        parse_error(root_node, &source_code, &mut messages);
+        let messages_joined = messages.join(&format!("\n{}:", filepath));
+        return Err(EssenceParseError::ParseError(Error::Parse(format!(
+            "\n{}:{}",
+            filepath,
+            messages_joined)
+        )));
+    }
 
     let mut model = Model::new(context);
-    let root_node = tree.root_node();
     for statement in named_children(&root_node) {
         match statement.kind() {
             "single_line_comment" => {}
