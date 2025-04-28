@@ -23,12 +23,11 @@ module.exports = grammar ({
 
     //general
     constant: $ => choice(
-      $.integer,
-      $.TRUE,
-      $.FALSE
+      field("integer", $.integer),
+      field("true", $.TRUE),
+      field("false", $.FALSE)
     ),
 
-    // integer: $ => choice(/[0-9]+/, /-[0-9]+/),
     integer: $ => token(/[0-9]+/),
 
     TRUE: $ => choice("true", "TRUE"),
@@ -38,7 +37,7 @@ module.exports = grammar ({
     identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
     //meta-variable (aka template argument)
-    metavar: $ => seq("&", $.identifier),
+    metavar: $ => seq("&", field("identifier", $.identifier)),
 
     //find statements
     find_statement_list: $ => prec.right(seq("find", commaSep1($.find_statement))),
@@ -269,5 +268,5 @@ module.exports = grammar ({
 });
 
 function commaSep1(rule) {
-  return seq(rule, optional(repeat(seq(",", rule))), optional(","));
+  return seq(field("commaSepItem", rule), optional(repeat(seq(",", field("commaSepItem", rule)))), optional(","));
 }

@@ -13,6 +13,7 @@ use uniplate::Uniplate;
 
 use crate::errors::EssenceParseError;
 
+use super::error::parse_error;
 use super::expression::parse_expression;
 use super::find::parse_find_statement;
 use super::letting::parse_letting_statement;
@@ -40,17 +41,16 @@ pub fn parse_essence_with_context(
             ))
         }
     };
-    
+
     let root_node = tree.root_node();
     if root_node.has_error() {
         let mut messages: Vec<String> = Vec::new();
         parse_error(root_node, &source_code, &mut messages);
-        let messages_joined = messages.join(&format!("\n{}:", filepath));
+        let messages_joined = messages.join(&format!("\n{}:", src));
         return Err(EssenceParseError::ParseError(Error::Parse(format!(
             "\n{}:{}",
-            filepath,
-            messages_joined)
-        )));
+            src, messages_joined
+        ))));
     }
 
     let mut model = Model::new(context);

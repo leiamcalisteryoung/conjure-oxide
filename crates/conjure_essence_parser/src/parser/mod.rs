@@ -6,6 +6,7 @@ pub mod parse_exprs;
 pub mod parse_model;
 pub mod traversal;
 pub mod util;
+pub mod error;
 
 pub use parse_exprs::*;
 pub use parse_model::*;
