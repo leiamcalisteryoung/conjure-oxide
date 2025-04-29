@@ -11,9 +11,12 @@ module.exports = grammar ({
   rules: {
     // Top-level statements
     program: $ => repeat(choice(
-      field("find_statement_list", $.find_statement_list),
-      field("constraint_list", $.constraint_list),
-      field("letting_statement_list", $.letting_statement_list),
+      seq("find", commaSep1(field("find_statement", $.find_statement))),
+      seq(
+        "such that", 
+        commaSep1(choice(field("bool_expr", $.bool_expr), field("atom", $.atom), field("comparison_expr", $.comparison_expr))), 
+      ),
+      seq("letting", commaSep1(field("letting_statement", $.letting_statement))),
       field("dominance_relation", $.dominance_relation),
       field("find", $.FIND),
       field("letting", $.LETTING),
@@ -44,26 +47,14 @@ module.exports = grammar ({
     FALSE: $ => choice("false", "FALSE"),
 
     identifier: $ => /[a-zA-Z_][a-zA-Z0-9_]*/,
-    // identifier: $ => {
-    //   const keyword = choice('find', 'letting', 'such', 'that', 'dominanceRelation');
-    //   return token(seq(
-    //     // Negative lookahead to prevent keywords as identifiers
-    //     alias(choice(
-    //       seq(not(keyword), /[a-zA-Z_][a-zA-Z0-9_]*/),
-    //       'identifier'
-    //     )
-    //   )))
-    // },
 
     //meta-variable (aka template argument)
     metavar: $ => seq("&", field("identifier", $.identifier)),
 
     //find statements
-    find_statement_list: $ => prec.right(seq("find", commaSep1($.find_statement))),
-
     find_statement: $ => seq(
       field("variables", $.variable_list),
-      ":",
+      field("colon", $.COLON),
       field("domain", $.domain),
     ),
     variable_list: $ => commaSep1($.identifier),
@@ -115,27 +106,14 @@ module.exports = grammar ({
     index_domain_list: $ => commaSep1(choice($.int_domain, $.bool_domain)),
 
     //letting statements
-    letting_statement_list: $ => prec.right(seq("letting", commaSep1($.letting_statement))),
     letting_statement: $ => seq(
       field("variable_list", $.variable_list), 
-      "be", 
-      optional("domain"),
+      field("be", "be"), 
+      optional(field ("domain", "domain")),
       field("expr_or_domain", choice($.bool_expr, $.arithmetic_expr, $.domain))
     ),
 
-    // Constraints
-    constraint_list: $ => prec.right(seq(
-      "such that", 
-      commaSep1(choice($.bool_expr, $.atom, $.comparison_expr)), 
-    )),
-
-    // Expression hierarchy
-    // expression: $ => choice(
-    //   field("boolean_expression", $.bool_expr), 
-    //   field("comparison_expression", $.comparison_expr), 
-    //   field("arithmetic_expression", $.arithmetic_expr)
-    // ),
-    
+    // Constraints 
     bool_expr: $ => choice(
       field("not_expression", $.not_expr),
       field("and_expression", $.and_expr),
