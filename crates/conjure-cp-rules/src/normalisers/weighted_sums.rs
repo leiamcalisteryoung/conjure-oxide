@@ -5,13 +5,12 @@
 
 use std::collections::BTreeMap;
 
-use conjure_rule_macros::register_rule;
-
-use conjure_core::{
-    ast::{Atom, Expression as Expr, Literal as Lit, Name, SymbolTable},
-
+use conjure_cp::essence_expr;
+use conjure_cp::rule_engine::register_rule;
+use conjure_cp::{
+    ast::Metadata,
+    ast::{Atom, Expression as Expr, Literal as Lit, Moo, Name, SymbolTable},
     into_matrix_expr,
-    metadata::Metadata,
     rule_engine::{ApplicationError::RuleNotApplicable, ApplicationResult, Reduction},
 };
 
@@ -45,7 +44,12 @@ fn collect_like_terms(expr: &Expr, st: &SymbolTable) -> ApplicationResult {
     for expr in exprs.clone() {
         match expr.clone() {
             Expr::Product(_, exprs2) => {
-                match exprs2.as_slice() {
+                match Moo::unwrap_or_clone(exprs2)
+                    .unwrap_list()
+                    .ok_or(RuleNotApplicable)?
+                    .as_slice()
+                {
+                    // todo (gs248) It would be nice to generate these destructures by macro, like `essence_expr!` but in reverse
                     // -c*v
                     [Expr::Atomic(_, Atom::Reference(decl)), Expr::Neg(_, e3)] => {
                         let name: &Name = &decl.name();
@@ -88,13 +92,9 @@ fn collect_like_terms(expr: &Expr, st: &SymbolTable) -> ApplicationResult {
 
     let mut new_exprs = vec![];
     for (name, coefficient) in weighted_terms {
-        new_exprs.push(Expr::Product(
-            Metadata::new(),
-            vec![
-                Expr::Atomic(Metadata::new(), name.into()),
-                Expr::Atomic(Metadata::new(), Atom::Literal(Lit::Int(coefficient))),
-            ],
-        ));
+        let decl = st.lookup(&name).ok_or(RuleNotApplicable)?;
+        let atom = Expr::Atomic(Metadata::new(), Atom::Reference(decl));
+        new_exprs.push(essence_expr!(&atom * &coefficient));
     }
 
     new_exprs.extend(other_terms);
