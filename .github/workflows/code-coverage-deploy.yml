@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set shas
         id: sha
@@ -43,7 +43,7 @@ jobs:
 
 
       - name: Download artifact
-        uses: dawidd6/action-download-artifact@v9
+        uses: dawidd6/action-download-artifact@v11
         with:
           name: code-coverage-${{ steps.sha.outputs.result }}
           workflow: code-coverage.yml
@@ -63,10 +63,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout the pages repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: "gh-pages"
           path: "pages"
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/cache@v3
         with:
           path: |
@@ -137,7 +137,7 @@ jobs:
             return callee_run.head_sha;
 
       - name: Download artifact
-        uses: dawidd6/action-download-artifact@v9
+        uses: dawidd6/action-download-artifact@v11
         with:
           name: code-coverage-${{ steps.sha.outputs.result }}
           workflow: code-coverage.yml
@@ -206,14 +206,14 @@ jobs:
           echo 'EOFABC' >> $GITHUB_OUTPUT
 
       - name: Download doc coverage summary for PR
-        uses: dawidd6/action-download-artifact@v9
+        uses: dawidd6/action-download-artifact@v11
         with:
           workflow: code-coverage.yml
           pr: ${{steps.prnum.outputs.num}}
           name: pr-doc-coverage-summary
 
       - name: Download doc coverage summary for main
-        uses: dawidd6/action-download-artifact@v9
+        uses: dawidd6/action-download-artifact@v11
         with:
           workflow: code-coverage-main.yml
           branch: main
@@ -262,7 +262,7 @@ jobs:
 
       - name: Download the previous lcov.info (historical) file
         if: steps.find_artifacts.outputs.result != '[]'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: code-coverage-${{ steps.prnum.outputs.num}}-${{ env.previous_artifact_id }}
           path: ./tools/code-coverage-diff/deploy-prev
